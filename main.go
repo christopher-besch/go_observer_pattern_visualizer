@@ -39,12 +39,14 @@ func main() {
 		Dir:  module_root,
 	}
 
+	log.Println("Loading packages...")
 	// Match all packages inside the module root
 	pkgs, err := packages.Load(cfg, "./...")
 	if err != nil {
 		log.Fatal("Failed to load packages")
 	}
 
+	log.Println("Analyzing packages...")
 	out_packages := map[string]bool{}
 	out_channels := map[string]bool{}
 	out_notifies := [][]string{}
@@ -129,6 +131,8 @@ func main() {
 		}
 	}
 
+	log.Println("Getting Git Stats...")
+	// get git stats
 	commit_cmd := exec.Command("git", "show", "--no-patch", "--format=%H", "HEAD")
 	commit_cmd.Dir = module_root
 	commit_stdout, err := commit_cmd.Output()
@@ -142,6 +146,7 @@ func main() {
 		log.Fatal(err)
 	}
 
+	log.Println("Producing Output...")
 	// print output as json
 	graph_out := GraphOutput{
 		Commit:    strings.Trim(string(commit_stdout), "\n\t "),
