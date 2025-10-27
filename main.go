@@ -1,13 +1,27 @@
 package main
 
 import (
+	"encoding/json"
+	"fmt"
 	"go/ast"
 	"go/token"
 	"log"
 	"os"
+	"os/exec"
+	"strings"
 
 	"golang.org/x/tools/go/packages"
 )
+
+type GraphOutput struct {
+	Commit    string   `json:"commit"`
+	TimeStamp string   `json:"timestamp"`
+	Packages  []string `json:"packages"`
+	Channels  []string `json:"channels"`
+	// This may only contain two strings each.
+	// The first element notifies the second.
+	Notifies [][]string `json:"notifies"`
+}
 
 func main() {
 	if len(os.Args) != 5 {
@@ -21,7 +35,7 @@ func main() {
 
 	// We use the golang.org/x/tools/go/packages package to parse not just a single file but the entire module.
 	cfg := &packages.Config{
-		Mode: packages.NeedName | packages.NeedFiles | packages.NeedSyntax | packages.NeedTypes | packages.NeedTypesInfo | packages.NeedImports,
+		Mode: packages.NeedName | packages.NeedSyntax | packages.NeedTypesInfo,
 		Dir:  module_root,
 	}
 
@@ -30,6 +44,10 @@ func main() {
 	if err != nil {
 		log.Fatal("Failed to load packages")
 	}
+
+	out_packages := map[string]bool{}
+	out_channels := map[string]bool{}
+	out_notifies := [][]string{}
 	for _, pkg := range pkgs {
 		// We loop over all nodes in the package twice:
 		// In the first pass we find all notification channels the package calls and the name of the packages local notifier.
@@ -50,7 +68,11 @@ func main() {
 						// Calls to notify channels or registering a new notifier.
 						// We filter the notifier register calls out.
 						pkg.TypesInfo.Uses[f.Sel].Name() != register_notify_func_name {
-						log.Println(pkg.PkgPath, "notifies", f.Sel)
+
+						// log.Println(pkg.PkgPath, "notifies", f.Sel)
+						out_packages[pkg.PkgPath] = true
+						out_channels[f.Sel.String()] = true
+						out_notifies = append(out_notifies, []string{pkg.PkgPath, f.Sel.String()})
 					}
 
 				// Is this a declaration?
@@ -95,11 +117,46 @@ func main() {
 				case *ast.FuncDecl:
 					// Is this a method for the notifier struct of this package?
 					if n.Recv != nil && len(n.Recv.List) == 1 && pkg.TypesInfo.TypeOf(n.Recv.List[0].Type).String() == *notifier_struct {
-						log.Println(pkg.PkgPath, "listenes to", n.Name.String())
+
+						// log.Println(pkg.PkgPath, "listenes to", n.Name.String())
+						out_packages[pkg.PkgPath] = true
+						out_channels[n.Name.String()] = true
+						out_notifies = append(out_notifies, []string{n.Name.String(), pkg.PkgPath})
 					}
 				}
 				return true
 			})
 		}
 	}
+
+	commit_cmd := exec.Command("git", "show", "--no-patch", "--format=%H", "HEAD")
+	commit_cmd.Dir = module_root
+	commit_stdout, err := commit_cmd.Output()
+	if err != nil {
+		log.Fatal(err)
+	}
+	timestamp_cmd := exec.Command("git", "show", "--no-patch", "--format=%at", "HEAD")
+	timestamp_cmd.Dir = module_root
+	timestamp_stdout, err := timestamp_cmd.Output()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// print output as json
+	graph_out := GraphOutput{
+		Commit:    strings.Trim(string(commit_stdout), "\n\t "),
+		TimeStamp: strings.Trim(string(timestamp_stdout), "\n\t "),
+	}
+	graph_out.Notifies = out_notifies
+	for pkg := range out_packages {
+		graph_out.Packages = append(graph_out.Packages, pkg)
+	}
+	for channel := range out_channels {
+		graph_out.Channels = append(graph_out.Channels, channel)
+	}
+	json_data, err := json.Marshal(graph_out)
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println(string(json_data))
 }
