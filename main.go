@@ -64,6 +64,10 @@ func main() {
 				case *ast.CallExpr:
 					// Is this a call like `something.someFunction()`?
 					if f, ok := n.Fun.(*ast.SelectorExpr); ok &&
+						// Somehow this can be nil in
+						// 16dbc0efd350cdc15760c2e40346c1e9fbb0bd01 works
+						// 3a986d282fcb27a094a3e6e076e3bf9b0e6c09cd doesn't
+						pkg.TypesInfo.Uses[f.Sel] != nil &&
 						// Is this a call to a function from the notify package?
 						pkg.TypesInfo.Uses[f.Sel].Pkg() != nil && pkg.TypesInfo.Uses[f.Sel].Pkg().Path() == notify_service_pkg_path &&
 						// The notify package has two types of functions:
