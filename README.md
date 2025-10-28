@@ -24,4 +24,32 @@ func (n *actionsNotifier) NewIssue(ctx context.Context, issue *issues_model.Issu
 notify_service.PullReviewDismiss(ctx, doer, review, comment)
 ```
 
-Use it like this: `go run . ~/forgejo/ forgejo.org/services/notify RegisterNotifier forgejo.org/services/notify.Notifier`
+- rename from code.gitea.io/gitea to forgejo.org at 2457f5ff2293f69e6de5cc7d608dd210f6b8e27a
+- move notifier from code.gitea.io/gitea/modules/notification/base.Notifier to code.gitea.io/gitea/services/notify.Notifier at 540bf9fa6d0d86297c9d575640798b718767bd9f
+- move notifier from modules/notification/base/base.go to modules/notification/base/notifier.go at beab2df1227f9b7e556aa5716d94feb3a3e2088e (this doesn't require any change to this script)
+- not using some queue for notifications any more but the observer pattern at ea619b39b2f2a3c1fb5ad28ebd4a269b2f822111
+
+Use it like this: `go run . ~/forgejo/ forgejo.org/services/notify,code.gitea.io/gitea/services/notify,code.gitea.io/gitea/modules/notification/base RegisterNotifier forgejo.org/services/notify.Notifier,code.gitea.io/gitea/services/notify.Notifier,code.gitea.io/gitea/modules/notification/base.Notifier > out.json`
+`cat <(go run . ~/forgejo/services forgejo.org/services/notify RegisterNotifier forgejo.org/services/notify.Notifier) | gzip > out.json.gz`
+
+```bash
+#!/bin/bash
+set -euo pipefail
+IFS=$' \n\t'
+DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
+
+while true; do
+    commit_name="$(git show --no-patch '--format=%at_%H' HEAD)"
+    echo "$commit_name"
+
+    if git diff HEAD HEAD~ --name-only | grep -P '.go$' > /dev/null; then
+        /home/chris/go_observer_pattern_visualizer/go_observer_pattern_visualizer /home/chris/forgejo/ forgejo.org/services/notify,code.gitea.io/gitea/services/notify,code.gitea.io/gitea/modules/notification/base RegisterNotifier forgejo.org/services/notify.Notifier,code.gitea.io/gitea/services/notify.Notifier,code.gitea.io/gitea/modules/notification/base.Notifier > ../out/"$commit_name.json"
+    else
+        echo "skipping as this commit doesn't change any .go files"
+    fi
+    git checkout HEAD~
+done
+```
+
+# This doesn't quite work yet
+`for f in *; do cat $f | jq 'walk(if type == "array" then sort else . end)' --sort-keys > $f.2; done`
