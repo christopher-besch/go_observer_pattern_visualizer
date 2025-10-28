@@ -29,9 +29,22 @@ func main() {
 		return
 	}
 	module_root := os.Args[1]
-	notify_service_pkg_path := os.Args[2]
-	register_notify_func_name := os.Args[3]
-	notifier_interface_path := os.Args[4]
+	notify_service_pkg_paths := strings.Split(os.Args[2], ",")
+	register_notify_func_names := strings.Split(os.Args[3], ",")
+	notifier_interface_paths := strings.Split(os.Args[4], ",")
+
+	notify_service_pkg_path_set := map[string]bool{}
+	for _, item := range notify_service_pkg_paths {
+		notify_service_pkg_path_set[item] = true
+	}
+	register_notify_func_name_set := map[string]bool{}
+	for _, item := range register_notify_func_names {
+		register_notify_func_name_set[item] = true
+	}
+	notifier_interface_path_set := map[string]bool{}
+	for _, item := range notifier_interface_paths {
+		notifier_interface_path_set[item] = true
+	}
 
 	// We use the golang.org/x/tools/go/packages package to parse not just a single file but the entire module.
 	cfg := &packages.Config{
@@ -69,11 +82,11 @@ func main() {
 						// 3a986d282fcb27a094a3e6e076e3bf9b0e6c09cd doesn't
 						pkg.TypesInfo.Uses[f.Sel] != nil &&
 						// Is this a call to a function from the notify package?
-						pkg.TypesInfo.Uses[f.Sel].Pkg() != nil && pkg.TypesInfo.Uses[f.Sel].Pkg().Path() == notify_service_pkg_path &&
+						pkg.TypesInfo.Uses[f.Sel].Pkg() != nil && notify_service_pkg_path_set[pkg.TypesInfo.Uses[f.Sel].Pkg().Path()] &&
 						// The notify package has two types of functions:
 						// Calls to notify channels or registering a new notifier.
 						// We filter the notifier register calls out.
-						pkg.TypesInfo.Uses[f.Sel].Name() != register_notify_func_name {
+						!register_notify_func_name_set[pkg.TypesInfo.Uses[f.Sel].Name()] {
 
 						// log.Println(pkg.PkgPath, "notifies", f.Sel)
 						out_packages[pkg.PkgPath] = true
@@ -91,7 +104,7 @@ func main() {
 							// Only look at ValueSpec
 							if value_spec, ok := spec.(*ast.ValueSpec); ok &&
 								// Is this a declaration that declares something a notifier struct?
-								pkg.TypesInfo.TypeOf(value_spec.Type) != nil && pkg.TypesInfo.TypeOf(value_spec.Type).String() == notifier_interface_path {
+								pkg.TypesInfo.TypeOf(value_spec.Type) != nil && notifier_interface_path_set[pkg.TypesInfo.TypeOf(value_spec.Type).String()] {
 								if len(value_spec.Values) != 1 {
 									log.Fatal("can't have two values in interface declaration")
 								}
@@ -155,6 +168,9 @@ func main() {
 	graph_out := GraphOutput{
 		Commit:    strings.Trim(string(commit_stdout), "\n\t "),
 		TimeStamp: strings.Trim(string(timestamp_stdout), "\n\t "),
+		Packages:  []string{},
+		Channels:  []string{},
+		Notifies:  [][]string{},
 	}
 	graph_out.Notifies = out_notifies
 	for pkg := range out_packages {
