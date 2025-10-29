@@ -35,9 +35,14 @@ let globalNodes = new Map()
 
 // svg setup
 const svg = d3.select("svg");
-const width = Number(svg.attr("width"));
-const height = Number(svg.attr("height"));
+
+const svgBoundingRect = document.getElementById("graph").getBoundingClientRect();
+
+const width = svgBoundingRect.width;
+const height = svgBoundingRect.height;
 const defs = svg.append("defs");
+
+const controls = document.getElementById("controls");
 
 function populateSvg(data) {
     // arrowhead marker for lines
@@ -161,10 +166,41 @@ function clearSvg() {
     label.remove()
 }
 
+function setupControls() {
+    for (let idx = timePoints.length - 1; idx >= 0; --idx) {
+        const date = new Date(timePoints[idx].timestamp * 1000);
+
+        const timePointDiv = document.createElement("div");
+        controls.append(timePointDiv);
+        timePointDiv.className = "timePointDiv";
+
+        const timePointInput = document.createElement("input");
+        timePointDiv.append(timePointInput);
+        timePointInput.type = "radio";
+        timePointInput.name = "commit";
+        timePointInput.value = idx;
+        timePointInput.id = `commit-${idx}`;
+        timePointInput.addEventListener("change", e => updateSimulation(e.target.value));
+
+        // timePointDiv.dataset["idx"] = timePoints.length - 1 - idx;
+
+        let timePointLabel = document.createElement("label");
+        timePointDiv.append(timePointLabel);
+        timePointLabel.textContent = `${date.toLocaleString()}, ${timePoints[idx].commit.substring(0, 7)}`;
+        timePointLabel.htmlFor = `commit-${idx}`;
+
+        if (idx === timePoints.length - 1) {
+            timePointInput.checked = true;
+        }
+    }
+}
+
 function initSimulation(data) {
     timePoints = data
     let timePoint = structuredClone(timePoints[timePoints.length - 1])
     globalNodes = timePoint.packages.concat(timePoint.channels);
+
+    setupControls()
 
     // simulation setup
     simulation = d3.forceSimulation(globalNodes)
@@ -177,19 +213,17 @@ function initSimulation(data) {
 }
 
 function updateSimulation(idx) {
+    console.log(`changing to idx ${idx}`);
     let timePoint = structuredClone(timePoints[idx])
 
     var newNodes = timePoint.packages.concat(timePoint.channels);
     simulation.nodes(newNodes)
     simulation.force("link", d3.forceLink(timePoint.links).id(d => d.id))
 
-    console.log(globalNodes);
-    console.log(newNodes);
     // load positions from old state
     for (const nodeIdx in globalNodes) {
         for (const newNodeIdx in newNodes) {
             if (globalNodes[nodeIdx].id === newNodes[newNodeIdx].id) {
-                // console.log("hi");
                 newNodes[newNodeIdx].x = globalNodes[nodeIdx].x;
                 newNodes[newNodeIdx].y = globalNodes[nodeIdx].y;
                 newNodes[newNodeIdx].vx = globalNodes[nodeIdx].vx;
@@ -211,7 +245,6 @@ function updateSimulation(idx) {
 fetch("out.json").
     then(response => response.json()).
     then(data => {
-        console.log(data);
         return data.map((dataPoint) => ({
             "commit": dataPoint.commit,
             "timestamp": dataPoint.timestamp,
