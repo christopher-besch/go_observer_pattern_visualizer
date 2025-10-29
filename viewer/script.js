@@ -35,14 +35,35 @@ let globalNodes = new Map()
 
 // svg setup
 const svg = d3.select("svg");
-
-const svgBoundingRect = document.getElementById("graph").getBoundingClientRect();
-
-const width = svgBoundingRect.width;
-const height = svgBoundingRect.height;
+let width;
+let height;
 const defs = svg.append("defs");
 
 const controls = document.getElementById("controls");
+
+function loadSvgSize() {
+    const svgBoundingRect = document.getElementById("graph").getBoundingClientRect();
+    width = svgBoundingRect.width;
+    height = svgBoundingRect.height;
+}
+
+const fullscreenButton = document.getElementById("fullscreenButton");
+fullscreenButton.addEventListener("click", _ => {
+    if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen();
+    } else {
+        document.exitFullscreen();
+    }
+});
+
+document.addEventListener('fullscreenchange', () => {
+    loadSvgSize();
+    simulation.force("center", d3.forceCenter(width / 2, height / 2));
+    // Nudge everything to make things move into place.
+    if (simulation.alpha() < 0.05) {
+        simulation.alphaTarget(0.05).restart();
+    }
+});
 
 function populateSvg(data) {
     // arrowhead marker for lines
@@ -203,6 +224,7 @@ function setupControls() {
 }
 
 function initSimulation(data) {
+    loadSvgSize();
     timePoints = data
     let timePoint = structuredClone(timePoints[timePoints.length - 1])
     globalNodes = timePoint.packages.concat(timePoint.channels);

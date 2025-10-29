@@ -1,6 +1,8 @@
 .container {
     display: flex;
     flex-direction: row;
+    /* Somehow not having this makes it black in an iframe sometimes. */
+    background-color: white;
 }
 
 #controls {
