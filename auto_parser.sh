@@ -29,6 +29,6 @@ while true; do
             rm -vr /root/go
     fi
 
-    git restore go.mod
+    git restore go.mod go.sum
     git checkout HEAD~
 done
