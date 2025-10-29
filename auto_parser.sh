@@ -200,7 +200,7 @@ run_script() {
 # done
 
 for commit in "${commits[@]}"; do
-    git checkout commit
+    git checkout "$commit"
     run_script
 done
 
