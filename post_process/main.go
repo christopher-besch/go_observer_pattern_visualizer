@@ -39,7 +39,8 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	full_output := map[string]GraphOutput{}
+	full_output := []GraphOutput{}
+	last_full_output_string := ""
 	for _, file := range files {
 		file_path := dir_path + "/" + file.Name()
 		json_bytes, err := os.ReadFile(file_path)
@@ -90,20 +91,17 @@ func main() {
 		if err != nil {
 			log.Fatal(err)
 		}
-		// always use the first element we find
-		if _, ok := full_output[string(json_data)]; !ok {
-			full_output[string(json_data)] = graph_output
+		// Did something change since we last checked?
+		// Always use the first element we find.
+		if string(json_data) != last_full_output_string {
+			full_output = append(full_output, graph_output)
+			last_full_output_string = string(json_data)
 		}
 	}
 
-	full_output_array := []GraphOutput{}
-	for _, graph_output := range full_output {
-		full_output_array = append(full_output_array, graph_output)
-	}
+	log.Printf("Number of outputs: %v\n", len(full_output))
 
-	log.Printf("Number of outputs: %v\n", len(full_output_array))
-
-	json_data, err := json.Marshal(full_output_array)
+	json_data, err := json.Marshal(full_output)
 	if err != nil {
 		log.Fatal(err)
 	}
