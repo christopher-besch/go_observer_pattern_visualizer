@@ -139,22 +139,29 @@ function populateSvg(data) {
     channel.on("mouseover", nodeMouseOver)
         .on("mouseout", nodeMouseOut);
 
+    function clampX(x) {
+        return Math.max(20, Math.min(width - 20, x));
+    }
+    function clampY(y) {
+        return Math.max(20, Math.min(height - 20, y));
+    }
+
     // update positions
     simulation.on("tick", () => {
         link
-            .attr("x1", d => d.source.x)
-            .attr("y1", d => d.source.y)
-            .attr("x2", d => d.target.x)
-            .attr("y2", d => d.target.y);
+            .attr("x1", d => clampX(d.source.x))
+            .attr("y1", d => clampY(d.source.y))
+            .attr("x2", d => clampX(d.target.x))
+            .attr("y2", d => clampY(d.target.y));
         package
-            .attr("cx", d => d.x)
-            .attr("cy", d => d.y);
+            .attr("cx", d => clampX(d.x))
+            .attr("cy", d => clampY(d.y));
         channel
-            .attr("cx", d => d.x)
-            .attr("cy", d => d.y);
+            .attr("cx", d => clampX(d.x))
+            .attr("cy", d => clampY(d.y));
         label
-            .attr("x", d => d.x)
-            .attr("y", d => d.y - 10);
+            .attr("x", d => clampX(d.x))
+            .attr("y", d => clampY(d.y - 10));
     });
 }
 
@@ -205,8 +212,9 @@ function initSimulation(data) {
     // simulation setup
     simulation = d3.forceSimulation(globalNodes)
         .force("link", d3.forceLink(timePoint.links).id(d => d.id))
-        .force("charge", d3.forceManyBody().strength(-800))
+        .force("charge", d3.forceManyBody().strength(-400))
         .force("center", d3.forceCenter(width / 2, height / 2))
+        .force("collision", d3.forceCollide().radius(10))
         .alphaMin(0.001);
 
     populateSvg(timePoint)
@@ -242,7 +250,7 @@ function updateSimulation(idx) {
     }
 }
 
-fetch("out.json").
+fetch("forgejo_data.json").
     then(response => response.json()).
     then(data => {
         return data.map((dataPoint) => ({
