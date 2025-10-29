@@ -30,7 +30,6 @@ notify_service.PullReviewDismiss(ctx, doer, review, comment)
 - not using some queue for notifications any more but the observer pattern at ea619b39b2f2a3c1fb5ad28ebd4a269b2f822111
 
 Use it like this: `go run . ~/forgejo/ forgejo.org/services/notify,code.gitea.io/gitea/services/notify,code.gitea.io/gitea/modules/notification/base RegisterNotifier forgejo.org/services/notify.Notifier,code.gitea.io/gitea/services/notify.Notifier,code.gitea.io/gitea/modules/notification/base.Notifier > out.json`
-`cat <(go run . ~/forgejo/services forgejo.org/services/notify RegisterNotifier forgejo.org/services/notify.Notifier) | gzip > out.json.gz`
 
 ```bash
 #!/bin/bash
@@ -41,12 +40,21 @@ DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 while true; do
     commit_name="$(git show --no-patch '--format=%at_%H' HEAD)"
     echo "$commit_name"
+    # ed1d95c55dfa91d1c9a486bfb8e00375d4038e29 repairs something that makes loading fail otherwise, solution:
+    go mod tidy
 
     if git diff HEAD HEAD~ --name-only | grep -P '.go$' > /dev/null; then
         /home/chris/go_observer_pattern_visualizer/go_observer_pattern_visualizer /home/chris/forgejo/ forgejo.org/services/notify,code.gitea.io/gitea/services/notify,code.gitea.io/gitea/modules/notification/base RegisterNotifier forgejo.org/services/notify.Notifier,code.gitea.io/gitea/services/notify.Notifier,code.gitea.io/gitea/modules/notification/base.Notifier > ../out/"$commit_name.json"
     else
         echo "skipping as this commit doesn't change any .go files"
     fi
+
+    # Apparently the go dir can grow to absurd sizes; prevent that.
+    if [ "$(du -bs /root/go | cut -f1)" -ge "1346239233" ]; then
+            rm -vr /root/go
+    fi
+
+    git restore go.mod
     git checkout HEAD~
 done
 ```
