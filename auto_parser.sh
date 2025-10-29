@@ -169,10 +169,15 @@ run_script() {
             sed -i 's#github.com/go-xorm/xorm v0.7.3-0.20190620151208-f1b4f8368459#github.com/go-xorm/xorm v0.7.3#' go.mod
 
             # We need to download the old tools because at some point the new tools fail to work with the old repo. (somewhere at go1.12)
-            go install "golang.org/dl/go$(cat go.mod | grep -P '^go ' | cut -d ' ' -f2)@latest"
-            "go$(cat go.mod | grep -P '^go ' | cut -d ' ' -f2)" download
-            # ed1d95c55dfa91d1c9a486bfb8e00375d4038e29 repairs something that makes loading fail otherwise, solution: go mod tidy
-            "go$(cat go.mod | grep -P '^go ' | cut -d ' ' -f2)" mod tidy
+            if go install "golang.org/dl/go$(cat go.mod | grep -P '^go ' | cut -d ' ' -f2)@latest"; then
+                "go$(cat go.mod | grep -P '^go ' | cut -d ' ' -f2)" download
+                # ed1d95c55dfa91d1c9a486bfb8e00375d4038e29 repairs something that makes loading fail otherwise, solution: go mod tidy
+                "go$(cat go.mod | grep -P '^go ' | cut -d ' ' -f2)" mod tidy
+            else
+                echo "failed to download tooling, that's fine"
+                # use new version of go if we fail at installing the old one
+                go mod tidy
+            fi
         fi
 
         /home/chris/go_observer_pattern_visualizer/parser/parser \
@@ -186,7 +191,7 @@ run_script() {
     fi
 
     # Apparently the go dir can grow to absurd sizes; prevent that.
-    if [ "$(du -bs /root/go | cut -f1)" -ge "1346239233" ]; then
+    if [ "$(du -bs /root/go | cut -f1)" -ge "5346239233" ]; then
             rm -vr /root/go
     fi
 
@@ -194,6 +199,7 @@ run_script() {
     git clean -f
 }
 
+# We used this to figure out what commits to look at with `cat forgejo_data.json | jq '.[].commit'`.
 # while true; do
 #     run_script
 #     git checkout HEAD~
