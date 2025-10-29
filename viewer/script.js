@@ -202,6 +202,10 @@ function setupControls() {
         controls.append(timePointDiv);
         timePointDiv.className = "timePointDiv";
 
+        if (timePoints[idx].timestamp >= 1671389768 && timePoints[idx].timestamp < 1693939067) {
+            timePointDiv.classList.add("badCommit");
+        }
+
         const timePointInput = document.createElement("input");
         timePointDiv.append(timePointInput);
         timePointInput.type = "radio";
@@ -251,14 +255,22 @@ function updateSimulation(idx) {
     simulation.force("link", d3.forceLink(timePoint.links).id(d => d.id))
 
     // load positions from old state
-    for (const nodeIdx in globalNodes) {
-        for (const newNodeIdx in newNodes) {
+    for (const newNodeIdx in newNodes) {
+        let found = false;
+        for (const nodeIdx in globalNodes) {
             if (globalNodes[nodeIdx].id === newNodes[newNodeIdx].id) {
                 newNodes[newNodeIdx].x = globalNodes[nodeIdx].x;
                 newNodes[newNodeIdx].y = globalNodes[nodeIdx].y;
                 newNodes[newNodeIdx].vx = globalNodes[nodeIdx].vx;
                 newNodes[newNodeIdx].vy = globalNodes[nodeIdx].vy;
+                found = true;
+                break;
             }
+        }
+        if (!found) {
+            // console.log(`new ${newNodes[newNodeIdx].id}`);
+            newNodes[newNodeIdx].x = width / 2;
+            newNodes[newNodeIdx].y = height / 2;
         }
     }
     // update globalNodes
