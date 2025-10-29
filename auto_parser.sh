@@ -18,10 +18,6 @@ while true; do
         echo "skipping as this commit doesn't change any .go files"
     fi
 
-    # We need to download the old tools because at some point the new tools fail to work with the old repo. (somewhere at go1.12)
-    go install "golang.org/dl/go$(cat go.mod | grep -P '^go ' | cut -d ' ' -f2)@latest"
-    "go$(cat go.mod | grep -P '^go ' | cut -d ' ' -f2)" download
-
     # The go.mod file was added in d77176912bccf1dc0ad93366df55f00fee23b498
     if [ ! -f go.mod ]; then
         # Use the modern go because the old one doesn't produce a go.mod that can be read without running go mod tidy afterwards.
@@ -33,6 +29,9 @@ while true; do
         # Before `go mod tidy` didn't work.
         sed -i 's#github.com/go-xorm/xorm v0.7.3-0.20190620151208-f1b4f8368459#github.com/go-xorm/xorm v0.7.3#' go.mod
 
+        # We need to download the old tools because at some point the new tools fail to work with the old repo. (somewhere at go1.12)
+        go install "golang.org/dl/go$(cat go.mod | grep -P '^go ' | cut -d ' ' -f2)@latest"
+        "go$(cat go.mod | grep -P '^go ' | cut -d ' ' -f2)" download
         # ed1d95c55dfa91d1c9a486bfb8e00375d4038e29 repairs something that makes loading fail otherwise, solution: go mod tidy
         "go$(cat go.mod | grep -P '^go ' | cut -d ' ' -f2)" mod tidy
     fi
