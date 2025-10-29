@@ -8,7 +8,7 @@ while true; do
     echo "$commit_name"
 
     if git diff HEAD HEAD~ --name-only | grep -P '.go$' > /dev/null; then
-        /home/chris/go_observer_pattern_visualizer/go_observer_pattern_visualizer /home/chris/forgejo/ forgejo.org/services/notify,code.gitea.io/gitea/services/notify,code.gitea.io/gitea/modules/notification/base RegisterNotifier forgejo.org/services/notify.Notifier,code.gitea.io/gitea/services/notify.Notifier,code.gitea.io/gitea/modules/notification/base.Notifier > ../out/"$commit_name.json"
+        /home/chris/go_observer_pattern_visualizer/go_observer_pattern_visualizer /home/chris/forgejo/ forgejo.org/services/notify,code.gitea.io/gitea/services/notify,code.gitea.io/git/services/notify,code.gitea.io/gitea/modules/notification/base,code.gitea.io/git/modules/notification/base RegisterNotifier forgejo.org/services/notify.Notifier,code.gitea.io/gitea/services/notify.Notifier,code.gitea.io/git/services/notify.Notifier,code.gitea.io/gitea/modules/notification/base.Notifier,code.gitea.io/git/modules/notification/base.Notifier > ../out/"$commit_name.json"
     else
         echo "skipping as this commit doesn't change any .go files"
     fi
