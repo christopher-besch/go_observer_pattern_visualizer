@@ -218,7 +218,7 @@ function setupControls() {
 
         let timePointLabel = document.createElement("label");
         timePointDiv.append(timePointLabel);
-        timePointLabel.textContent = `${date.toLocaleString()}, ${timePoints[idx].commit.substring(0, 7)}`;
+        timePointLabel.innerHTML = `${date.toLocaleString()}, <a target="_blank" href="https://codeberg.org/forgejo/forgejo/commit/${timePoints[idx].commit}">${timePoints[idx].commit.substring(0, 7)}</a>`;
         timePointLabel.htmlFor = `commit-${idx}`;
 
         if (idx === timePoints.length - 1) {
