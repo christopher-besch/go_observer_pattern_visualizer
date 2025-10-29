@@ -20,14 +20,18 @@ const hideTextColor = "#00000022";
 const defaultTextColor = "#000000ff";
 const highlightTextColor = "#000000ff";
 
-var simulation
-var timePoints
+let simulation
+let timePoints
 
-var arrow
-var link
-var package
-var channel
-var label
+let arrow
+let link
+let package
+let channel
+let label
+
+// map node id to node struct
+// used to store the positions and velocities of nodes
+let globalNodes = new Map()
 
 // svg setup
 const svg = d3.select("svg");
@@ -159,36 +163,61 @@ function clearSvg() {
 
 function initSimulation(data) {
     timePoints = data
-    // simulation setup
-    simulation = d3.forceSimulation(timePoints[0].packages.concat(timePoints[0].channels))
-        .force("link", d3.forceLink(timePoints[0].links).id(d => d.id))
-        .force("charge", d3.forceManyBody().strength(-500))
-        .force("center", d3.forceCenter(width / 2, height / 2));
+    let timePoint = structuredClone(timePoints[timePoints.length - 1])
+    globalNodes = timePoint.packages.concat(timePoint.channels);
 
-    populateSvg(timePoints[0])
+    // simulation setup
+    simulation = d3.forceSimulation(globalNodes)
+        .force("link", d3.forceLink(timePoint.links).id(d => d.id))
+        .force("charge", d3.forceManyBody().strength(-800))
+        .force("center", d3.forceCenter(width / 2, height / 2))
+        .alphaMin(0.001);
+
+    populateSvg(timePoint)
 }
 
 function updateSimulation(idx) {
-    simulation.nodes(timePoints[idx].packages.concat(timePoints[idx].channels))
-    simulation.force("link", d3.forceLink(timePoints[idx].links).id(d => d.id))
+    let timePoint = structuredClone(timePoints[idx])
+
+    var newNodes = timePoint.packages.concat(timePoint.channels);
+    simulation.nodes(newNodes)
+    simulation.force("link", d3.forceLink(timePoint.links).id(d => d.id))
+
+    console.log(globalNodes);
+    console.log(newNodes);
+    // load positions from old state
+    for (const nodeIdx in globalNodes) {
+        for (const newNodeIdx in newNodes) {
+            if (globalNodes[nodeIdx].id === newNodes[newNodeIdx].id) {
+                // console.log("hi");
+                newNodes[newNodeIdx].x = globalNodes[nodeIdx].x;
+                newNodes[newNodeIdx].y = globalNodes[nodeIdx].y;
+                newNodes[newNodeIdx].vx = globalNodes[nodeIdx].vx;
+                newNodes[newNodeIdx].vy = globalNodes[nodeIdx].vy;
+            }
+        }
+    }
+    // update globalNodes
+    globalNodes = newNodes
+
     clearSvg()
-    populateSvg(timePoints[idx])
+    populateSvg(timePoint)
 
     if (simulation.alpha() < 0.05) {
-        simulation.alphaTarget(0.2).restart();
+        simulation.alphaTarget(0.05).restart();
     }
 }
 
-fetch("forgejo_data.json").
+fetch("out.json").
     then(response => response.json()).
     then(data => {
         console.log(data);
         return data.map((dataPoint) => ({
             "commit": dataPoint.commit,
             "timestamp": dataPoint.timestamp,
-            "packages": dataPoint.packages.map((val) => ({ "id": val.replace("forgejo.org/", "").replace("code.gitea.io/gitea", "") })),
+            "packages": dataPoint.packages.map((val) => ({ "id": val.replace("forgejo.org/", "").replace("code.gitea.io/gitea/", "") })),
             "channels": dataPoint.channels.map((val) => ({ "id": val })),
-            "links": dataPoint.notifies.map((val) => ({ "source": val[0].replace("forgejo.org/", "").replace("code.gitea.io/gitea", ""), "target": val[1].replace("forgejo.org/", "").replace("code.gitea.io/gitea", "") })),
+            "links": dataPoint.notifies.map((val) => ({ "source": val[0].replace("forgejo.org/", "").replace("code.gitea.io/gitea/", ""), "target": val[1].replace("forgejo.org/", "").replace("code.gitea.io/gitea/", "") })),
         })
         );
     }).
