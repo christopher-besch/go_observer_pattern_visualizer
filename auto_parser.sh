@@ -42,6 +42,7 @@ while true; do
             rm -vr /root/go
     fi
 
-    git restore go.mod go.sum
+    git restore .
+    git clean -f
     git checkout HEAD~
 done
