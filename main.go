@@ -56,7 +56,7 @@ func main() {
 	// Match all packages inside the module root
 	pkgs, err := packages.Load(cfg, "./...")
 	if err != nil {
-		log.Fatal("Failed to load packages")
+		log.Fatal("Failed to load packages", err)
 	}
 
 	log.Println("Analyzing packages...")
@@ -64,6 +64,11 @@ func main() {
 	out_channels := map[string]bool{}
 	out_notifies := [][]string{}
 	for _, pkg := range pkgs {
+		// skip the notify package itself
+		if notify_service_pkg_path_set[pkg.PkgPath] {
+			continue
+		}
+
 		// We loop over all nodes in the package twice:
 		// In the first pass we find all notification channels the package calls and the name of the packages local notifier.
 		// We assume that every package has no or a single notifier.
@@ -86,7 +91,9 @@ func main() {
 						// The notify package has two types of functions:
 						// Calls to notify channels or registering a new notifier.
 						// We filter the notifier register calls out.
-						!register_notify_func_name_set[pkg.TypesInfo.Uses[f.Sel].Name()] {
+						!register_notify_func_name_set[pkg.TypesInfo.Uses[f.Sel].Name()] &&
+						// Only exported functions can be channels.
+						f.Sel.IsExported() {
 
 						// log.Println(pkg.PkgPath, "notifies", f.Sel)
 						out_packages[pkg.PkgPath] = true
@@ -135,7 +142,9 @@ func main() {
 				// Is this a function?
 				case *ast.FuncDecl:
 					// Is this a method for the notifier struct of this package?
-					if n.Recv != nil && len(n.Recv.List) == 1 && pkg.TypesInfo.TypeOf(n.Recv.List[0].Type).String() == *notifier_struct {
+					if n.Recv != nil && len(n.Recv.List) == 1 && pkg.TypesInfo.TypeOf(n.Recv.List[0].Type).String() == *notifier_struct &&
+						// Only exported functions can be channels.
+						n.Name.IsExported() {
 
 						// log.Println(pkg.PkgPath, "listenes to", n.Name.String())
 						out_packages[pkg.PkgPath] = true
