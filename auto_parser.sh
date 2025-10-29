@@ -173,8 +173,9 @@ run_script() {
                 "go$(cat go.mod | grep -P '^go ' | cut -d ' ' -f2)" download
                 # ed1d95c55dfa91d1c9a486bfb8e00375d4038e29 repairs something that makes loading fail otherwise, solution: go mod tidy
                 if ! "go$(cat go.mod | grep -P '^go ' | cut -d ' ' -f2)" mod tidy; then
-                    # there is a problem in 17030ced75059ec21f6fb1945a751c3ebef29a32 where go1.14 doesn't manage to mod tidy
-                    # but the modern version works, so use that
+                    # There is a problem in 17030ced75059ec21f6fb1945a751c3ebef29a32 where go1.14 doesn't manage to mod tidy.
+                    # But the modern version works, so use that.
+                    echo using new go tooling instead
                     go mod tidy
                 fi
             else
