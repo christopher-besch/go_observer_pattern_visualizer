@@ -188,13 +188,15 @@ func main() {
 	for channel := range out_channels {
 		graph_out.Channels = append(graph_out.Channels, channel)
 	}
-	if len(graph_out.Channels) == 0 || len(graph_out.Packages) == 0 {
-		log.Fatal("failed to find any channels or packages")
-	}
 
 	json_data, err := json.Marshal(graph_out)
 	if err != nil {
 		log.Fatal(err)
 	}
 	fmt.Println(string(json_data))
+
+	// Fail after creating the output file.
+	if len(graph_out.Channels) == 0 || len(graph_out.Packages) == 0 {
+		log.Fatal("failed to find any channels or packages")
+	}
 }
