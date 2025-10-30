@@ -279,8 +279,8 @@ function updateSimulation(idx) {
     clearSvg()
     populateSvg(timePoint)
 
-    if (simulation.alpha() < 0.05) {
-        simulation.alphaTarget(0.05).restart();
+    if (simulation.alpha() < 0.2) {
+        simulation.alpha(0.2).restart();
     }
 }
 
