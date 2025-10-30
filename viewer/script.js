@@ -60,8 +60,8 @@ document.addEventListener('fullscreenchange', () => {
     loadSvgSize();
     simulation.force("center", d3.forceCenter(width / 2, height / 2));
     // Nudge everything to make things move into place.
-    if (simulation.alpha() < 0.05) {
-        simulation.alphaTarget(0.05).restart();
+    if (simulation.alpha() < 0.2) {
+        simulation.alpha(0.2).restart();
     }
 });
 
