@@ -1,36 +1,27 @@
 # Go Observer Pattern Visualizer
 
-This script creates a visualization for Forgejo's observer pattern.
-It works with all Go projects that use the same pattern.
+This script creates a visualization for Forgejo's pub-sub pattern.
+I wrote an article about how this works: [The History of Forgejo's Pub-Sub Pattern](https://chris-besch.com/articles/forgejo_pub_sub_pattern_history).
+These tools work with all Go projects that use the same pattern:
 
 ```go
+// Define the notifier.
 type actionsNotifier struct {
 	notify_service.NullNotifier
 }
 
+// Ensure that this struct fulfills the Notifier interface.
 var _ notify_service.Notifier = &actionsNotifier{}
-```
 
-```go
-notify_service.RegisterNotifier(NewNotifier())
-```
-
-```go
-func (n *actionsNotifier) NewIssue(ctx context.Context, issue *issues_model.Issue, _ []*user_model.User) {
+// Declare functions for all topics the package is interested in.
+func (n *actionsNotifier) NewIssue(/* --snip-- */) {
 // --snip--
-```
 
-```go
+// Tell the broker there's a new notifier to be notified.
+notify_service.RegisterNotifier(&actionsNotifier{})
+
+// send a message to some topic
 notify_service.PullReviewDismiss(ctx, doer, review, comment)
 ```
 
-- rename from code.gitea.io/gitea to forgejo.org at 2457f5ff2293f69e6de5cc7d608dd210f6b8e27a
-- move notifier from code.gitea.io/gitea/modules/notification/base.Notifier to code.gitea.io/gitea/services/notify.Notifier at 540bf9fa6d0d86297c9d575640798b718767bd9f
-- move notifier from modules/notification/base/base.go to modules/notification/base/notifier.go at beab2df1227f9b7e556aa5716d94feb3a3e2088e (this doesn't require any change to this script)
-- rename from code.gitea.io/git to code.gitea.io/gitea at d578b71d61ee8131e8abf7f538b93d8c6cc6fe6d
-- not using some queue for notifications any more but the observer pattern at ea619b39b2f2a3c1fb5ad28ebd4a269b2f822111
-
 Use it like this: `go run . ~/forgejo/ forgejo.org/services/notify,code.gitea.io/gitea/services/notify,code.gitea.io/gitea/modules/notification/base RegisterNotifier forgejo.org/services/notify.Notifier,code.gitea.io/gitea/services/notify.Notifier,code.gitea.io/gitea/modules/notification/base.Notifier > out.json`
-
-# This doesn't quite work yet
-`for f in *; do cat $f | jq 'walk(if type == "array" then sort else . end)' --sort-keys > $f.2; done`
