@@ -20,18 +20,18 @@ const hideTextColor = "#00000022";
 const defaultTextColor = "#000000ff";
 const highlightTextColor = "#000000ff";
 
-let simulation
-let timePoints
+let simulation;
+let timePoints;
 
-let arrow
-let link
-let package
-let channel
-let label
+let arrow;
+let link;
+let package;
+let channel;
+let label;
 
 // map node id to node struct
 // used to store the positions and velocities of nodes
-let globalNodes = new Map()
+let globalNodes = new Map();
 
 // svg setup
 const svg = d3.select("svg");
@@ -57,18 +57,16 @@ fullscreenButton.addEventListener("click", _ => {
     }
 });
 
-document.addEventListener('fullscreenchange', () => {
-    // Wait a little until the svg has adjusted to the new size.
-    // This is sometimes a problem with iframes.
-    setTimeout(() => {
-        loadSvgSize();
-        simulation.force("center", d3.forceCenter(width / 2, height / 2));
-        // Nudge everything to make things move into place.
-        if (simulation.alpha() < 0.2) {
-            simulation.alpha(0.2).restart();
-        }
-    }, 50);
-});
+function updateViewport() {
+    loadSvgSize();
+    simulation.force("center", d3.forceCenter(width / 2, height / 2));
+    // Nudge everything to make things move into place.
+    if (simulation.alpha() < 0.2) {
+        simulation.alpha(0.2).restart();
+    }
+}
+
+window.addEventListener('resize', updateViewport);
 
 function populateSvg(data) {
     // arrowhead marker for lines
@@ -289,26 +287,24 @@ function updateSimulation(idx) {
     }
 }
 
-window.addEventListener("load", () => {
-    fetch("forgejo_data.json").
-        then(response => response.json()).
-        then(data => {
-            return data.map((dataPoint) => ({
-                "commit": dataPoint.commit,
-                "timestamp": dataPoint.timestamp,
-                "packages": dataPoint.packages.map((val) => ({
-                    "id": val.replace("forgejo.org/", "").replace("code.gitea.io/gitea/", "")
-                })),
-                "channels": dataPoint.channels.map((val) => ({
-                    "id": val
-                })),
-                "links": dataPoint.notifies.map((val) => ({
-                    "source": val[0].replace("forgejo.org/", "").replace("code.gitea.io/gitea/", ""),
-                    "target": val[1].replace("forgejo.org/", "").replace("code.gitea.io/gitea/", "")
-                })),
-            })
-            );
-        }).
-        then(data => initSimulation(data)).
-        catch(error => console.error(error))
-});
+fetch("forgejo_data.json").
+    then(response => response.json()).
+    then(data => {
+        return data.map((dataPoint) => ({
+            "commit": dataPoint.commit,
+            "timestamp": dataPoint.timestamp,
+            "packages": dataPoint.packages.map((val) => ({
+                "id": val.replace("forgejo.org/", "").replace("code.gitea.io/gitea/", "")
+            })),
+            "channels": dataPoint.channels.map((val) => ({
+                "id": val
+            })),
+            "links": dataPoint.notifies.map((val) => ({
+                "source": val[0].replace("forgejo.org/", "").replace("code.gitea.io/gitea/", ""),
+                "target": val[1].replace("forgejo.org/", "").replace("code.gitea.io/gitea/", "")
+            })),
+        })
+        );
+    }).
+    then(data => initSimulation(data)).
+    catch(error => console.error(error));
